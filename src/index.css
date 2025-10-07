@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --color-background: #0b0d17;
+  --color-text: #ffffff;
+  --color-accent: #ec4899; /* Tailwind pink-500 */
+}
+
+/* Base global styles */
+body {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
