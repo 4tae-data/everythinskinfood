@@ -348,6 +348,7 @@ function AdminPanel() {
     price: "",
     category: "Skincare",
     image: "",
+    stock: "", // new stock field
   });
 
   const loadProducts = async () => {
@@ -359,8 +360,22 @@ function AdminPanel() {
     await addDoc(collection(db, "products"), {
       ...form,
       price: Number(form.price),
+      stock: Number(form.stock) || 0,
     });
-    setForm({ name: "", brand: "", price: "", category: "Skincare", image: "" });
+    setForm({
+      name: "",
+      brand: "",
+      price: "",
+      category: "Skincare",
+      image: "",
+      stock: "",
+    });
+    loadProducts();
+  };
+
+  const updateProduct = async (id, updatedData) => {
+    const docRef = doc(db, "products", id);
+    await updateDoc(docRef, updatedData);
     loadProducts();
   };
 
@@ -377,17 +392,19 @@ function AdminPanel() {
     <div className="p-8 bg-white min-h-screen text-[#3b2f2f]">
       <h2 className="text-3xl font-bold mb-6">🛠 Admin Dashboard</h2>
 
-      <div className="grid gap-4 mb-8 md:grid-cols-2">
-        {["name", "brand", "price", "image"].map((key) => (
+      {/* === Add New Product Form === */}
+      <div className="grid gap-4 mb-8 md:grid-cols-2 lg:grid-cols-3">
+        {["name", "brand", "price", "image", "stock"].map((key) => (
           <input
             key={key}
-            type="text"
+            type={key === "price" || key === "stock" ? "number" : "text"}
             value={form[key]}
             onChange={(e) => setForm({ ...form, [key]: e.target.value })}
             placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
             className="border p-2 rounded w-full"
           />
         ))}
+
         <select
           value={form.category}
           onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -399,31 +416,132 @@ function AdminPanel() {
           <option>Sale</option>
           <option>New In</option>
         </select>
+
         <button
           onClick={addProduct}
           className="bg-[#a67b5b] text-white px-6 py-2 rounded hover:bg-[#8b5e3c]"
         >
-          Add Product
+          ➕ Add Product
         </button>
       </div>
 
+      {/* === Product List === */}
       <div className="grid md:grid-cols-3 gap-4">
         {products.map((p) => (
-          <div key={p.id} className="border rounded-xl p-4 shadow">
-            <img src={p.image} alt={p.name} className="h-40 w-full object-cover rounded mb-2" />
-            <h4 className="font-semibold">{p.name}</h4>
-            <p className="text-sm">{p.brand}</p>
-            <p className="font-bold">₦{p.price}</p>
+          <EditableProductCard
+            key={p.id}
+            product={p}
+            onDelete={() => removeProduct(p.id)}
+            onSave={(data) => updateProduct(p.id, data)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* === Editable Product Card === */
+function EditableProductCard({ product, onDelete, onSave }) {
+  const [editMode, setEditMode] = useState(false);
+  const [form, setForm] = useState(product);
+
+  return (
+    <div className="border rounded-xl p-4 shadow relative">
+      {editMode ? (
+        <>
+          <input
+            type="text"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="border p-1 w-full rounded mb-1"
+            placeholder="Name"
+          />
+          <input
+            type="text"
+            value={form.brand}
+            onChange={(e) => setForm({ ...form, brand: e.target.value })}
+            className="border p-1 w-full rounded mb-1"
+            placeholder="Brand"
+          />
+          <input
+            type="number"
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            className="border p-1 w-full rounded mb-1"
+            placeholder="Price"
+          />
+          <input
+            type="text"
+            value={form.image}
+            onChange={(e) => setForm({ ...form, image: e.target.value })}
+            className="border p-1 w-full rounded mb-1"
+            placeholder="Image URL"
+          />
+          <input
+            type="number"
+            value={form.stock}
+            onChange={(e) => setForm({ ...form, stock: e.target.value })}
+            className="border p-1 w-full rounded mb-1"
+            placeholder="Stock level"
+          />
+          <select
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+            className="border p-1 rounded mb-1 w-full"
+          >
+            <option>Skincare</option>
+            <option>Buy African Skincare</option>
+            <option>Viral Skincare</option>
+            <option>Sale</option>
+            <option>New In</option>
+          </select>
+
+          <div className="flex justify-between mt-2">
             <button
-              onClick={() => removeProduct(p.id)}
-              className="mt-2 flex items-center gap-1 text-red-500"
+              onClick={() => {
+                onSave(form);
+                setEditMode(false);
+              }}
+              className="bg-green-600 text-white px-3 py-1 rounded"
             >
-              <Trash className="w-4 h-4" /> Delete
+              Save
             </button>
-            </div>
-           ))} 
-           </div>
-         </div>
-       );
-     }
-     
+            <button
+              onClick={() => setEditMode(false)}
+              className="bg-gray-400 text-white px-3 py-1 rounded"
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <img
+            src={product.image}
+            alt={product.name}
+            className="h-40 w-full object-cover rounded mb-2"
+          />
+          <h4 className="font-semibold">{product.name}</h4>
+          <p className="text-sm">{product.brand}</p>
+          <p className="font-bold">₦{product.price}</p>
+          <p className="text-sm">Stock: {product.stock ?? 0}</p>
+
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => setEditMode(true)}
+              className="bg-[#a67b5b] text-white px-3 py-1 rounded"
+            >
+              Edit
+            </button>
+            <button
+              onClick={onDelete}
+              className="bg-red-500 text-white px-3 py-1 rounded"
+            >
+              Delete
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
