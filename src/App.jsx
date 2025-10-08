@@ -7,171 +7,36 @@ import {
   MessageCircle,
   Plus,
   Minus,
+  Trash,
 } from "lucide-react";
-// Put your logo at src/assets/everythinskin_logo-removebg-preview.png
 import logo from "./assets/everythinskin_logo-removebg-preview.png";
+import TestFirestore from "./TestFirestore";
+import useProducts from "./hooks/useProducts";
+import { db } from "./firebase";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
+
+// ✅ MAIN APP
 export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState([]);
-  const [dropdown, setDropdown] = useState(null); // which header menu is open
+  const [dropdown, setDropdown] = useState(null);
   const [promoIndex, setPromoIndex] = useState(0);
+  const [isAdmin] = useState(window.location.pathname === "/admin");
 
-  // --- Expanded product catalog (15 items) ---
-  const products = [
-    // New In
-    {
-      id: 1,
-      name: "Glow Serum — Vitamin C Booster",
-      category: "New In",
-      brand: "The Ordinary",
-      price: 12000,
-      image:
-        "https://m.media-amazon.com/images/I/61P6VWuWfUL._SL1500_.jpg",
-    },
-    {
-      id: 2,
-      name: "Hydra Hyaluronic Serum",
-      category: "New In",
-      brand: "COSRX",
-      price: 14000,
-      image:
-        "https://ng.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/81/7544292/1.jpg?4791",
-    },
-    {
-      id: 3,
-      name: "Radiance Niacinamide Serum",
-      category: "New In",
-      brand: "Ordinary",
-      price: 9000,
-      image:
-        "https://ng.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/30/7192814/1.jpg?6243",
-    },
+  // 🔒 Admin auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const ADMIN_PASS = "vicky0923!"; // change this anytime
 
-    // Skincare (general)
-    {
-      id: 4,
-      name: "Gentle Foaming Cleanser",
-      category: "Skincare",
-      brand: "CeraVe",
-      price: 6000,
-      image:
-        "https://www.cerave.com/-/media/project/loreal/brand-sites/cerave/americas/us/skincare/cleansers/foaming-facial-cleanser/photos/foaming-facial-cleanser_front.jpg?rev=10cd9e2cc8374aa1b2621d87f938c0ed&w=900&hash=9595AD39EE5E93048874004E4272393D",
-    },
-    {
-      id: 5,
-      name: "Ginseng Essence Water",
-      category: "Skincare",
-      brand: "Beauty of Joseon",
-      price: 7500,
-      image:
-        "https://m.media-amazon.com/images/I/61SFmCEx9qL._AC_SX679_.jpg",
-    },
-    {
-      id: 6,
-      name: "Retinol Night Repair Serum",
-      category: "Skincare",
-      brand: "La Roche-Posay",
-      price: 18000,
-      image:
-        "https://ng.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/75/3556852/1.jpg?6404",
-    },
-
-    // Buy African Skincare
-    {
-      id: 7,
-      name: "African Shea Elixir",
-      category: "Buy African Skincare",
-      brand: "African Botanics",
-      price: 9500,
-      image:
-        "https://m.media-amazon.com/images/I/51uGs20m79L._SX679_.jpg",
-    },
-    {
-      id: 8,
-      name: "Baobab & Shea butter",
-      category: "Buy African Skincare",
-      brand: "Skin Gourmet",
-      price: 7200,
-      image:
-        "https://skingourmet.com/wp-content/uploads/2024/11/Baobab-and-shea-456x684.png",
-    },
-    {
-      id: 9,
-      name: "Shea Body Oil",
-      category: "Buy African Skincare",
-      brand: "R&R Luxury",
-      price: 11000,
-      image:
-        "https://randrskincare.co/cdn/shop/files/SereneSheaBodyOilcopy.png?v=1727448607&width=360",
-    },
-
-    // Viral Skincare
-    {
-      id: 10,
-      name: "Glass Skin Starter Kit",
-      category: "Viral Skincare",
-      brand: "InstaGlow",
-      price: 22000,
-      image:
-        "https://www.peachandlily.com/cdn/shop/files/Image_1_12.jpg?v=1747822299&width=1200",
-      badge: "Bestseller",
-    },
-    {
-      id: 11,
-      name: "24k Gold Peel Mask",
-      category: "Viral Skincare",
-      brand: "GoldGlow",
-      price: 15000,
-      image:
-        "https://ng.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/26/9678214/1.jpg?1933",
-      badge: "30% OFF",
-      salePercent: 30,
-    },
-
-    // Sale items
-    {
-      id: 12,
-      name: "Vitamin C Brightening Serum",
-      category: "Sale",
-      brand: "BrightLab",
-      price: 9000,
-      image:
-        "https://ng.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/20/4137204/1.jpg?0230",
-      badge: "30% OFF",
-      salePercent: 30,
-    },
-    {
-      id: 13,
-      name: "Moisture Boost Daily Sun Gel SPF50",
-      category: "Sale",
-      brand: "SunGuard",
-      price: 6500,
-      image:
-        "https://www.sukkati.com/cdn/shop/files/Sunscreen_1.jpg?v=1746077929&width=960",
-      badge: "Limited Offer",
-    },
-
-    // Extra products to fill catalog
-    {
-      id: 14,
-      name: "Ceramide Moisturizing Cream",
-      category: "Skincare",
-      brand: "CeraVe",
-      price: 8000,
-      image:
-        "https://ng.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/52/5322722/1.jpg?9256",
-    },
-    {
-      id: 15,
-      name: "Niacinamide + Zinc Treatment",
-      category: "Skincare",
-      brand: "Ordinary",
-      price: 7000,
-      image:
-        "https://ng.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/09/3225814/1.jpg?3383",
-    },
-  ];
+  const { products, loading, error } = useProducts();
 
   const categories = [
     "New In",
@@ -200,21 +65,13 @@ export default function App() {
     ],
   };
 
-  // animations used
-  const animationStyles = {
-    fadeUp: {
-      animation: "fadeUp 550ms ease both",
-    },
-  };
-
-  // promos for bottom ticker
   const promos = [
     "✨ 30% OFF This Week — Nourish Your Glow ✨",
     "🌿 Free Delivery on Orders Over ₦20,000",
     "💧 New Hydration Kits for Every Skin Type",
   ];
 
-  // promo cycling
+  // === Auto cycle promos ===
   useEffect(() => {
     const interval = setInterval(() => {
       setPromoIndex((p) => (p + 1) % promos.length);
@@ -222,12 +79,14 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // cart helpers (add, update qty, remove)
+  // === Cart Logic ===
   const addToCart = (product) => {
     const existing = cartItems.find((i) => i.id === product.id);
     if (existing) {
       setCartItems(
-        cartItems.map((i) => (i.id === product.id ? { ...i, qty: i.qty + 1 } : i))
+        cartItems.map((i) =>
+          i.id === product.id ? { ...i, qty: i.qty + 1 } : i
+        )
       );
     } else {
       setCartItems([...cartItems, { ...product, qty: 1 }]);
@@ -249,38 +108,74 @@ export default function App() {
     setCartItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // compute cart totals
   const cartSubtotal = cartItems.reduce((s, it) => s + it.price * it.qty, 0);
+
+  // === 🔒 Admin Authentication ===
+  if (isAdmin && !isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[#fff8f0] text-[#3b2f2f]">
+        <h2 className="text-2xl font-semibold mb-4">🔒 Admin Access</h2>
+        <input
+          type="password"
+          placeholder="Enter Admin Password"
+          value={adminPassword}
+          onChange={(e) => setAdminPassword(e.target.value)}
+          className="border px-4 py-2 rounded mb-4 w-64 text-center"
+        />
+        <button
+          onClick={() =>
+            adminPassword === ADMIN_PASS
+              ? setIsAuthenticated(true)
+              : alert("Incorrect password")
+          }
+          className="bg-[#a67b5b] text-white px-4 py-2 rounded-full"
+        >
+          Login
+        </button>
+      </div>
+    );
+  }
+
+  // === Load Admin Panel After Login ===
+  if (isAdmin && isAuthenticated) {
+    return <AdminPanel />;
+  }
+
+  // === Storefront Views ===
+  if (loading)
+    return (
+      <div className="flex h-screen items-center justify-center text-[#3b2f2f]">
+        ⏳ Loading products...
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="flex flex-col h-screen items-center justify-center text-[#3b2f2f]">
+        <h2 className="text-xl font-semibold mb-2">⚠️ Error Loading Products</h2>
+        <p>{error.message || "Something went wrong fetching data."}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 bg-[#a67b5b] text-white px-4 py-2 rounded-full"
+        >
+          Retry
+        </button>
+      </div>
+    );
+
+  const safeProducts = products && products.length > 0 ? products : [];
 
   return (
     <div className="min-h-screen bg-white text-[#3b2f2f] font-sans overflow-x-hidden relative">
-      {/* small CSS injection for keyframes & reduced-motion */}
-      <style>{`
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px);} to { opacity:1; transform: translateY(0);} }
-        @keyframes promoFade { 0%{opacity:0; transform: translateY(6px);} 10%{opacity:1; transform:translateY(0);} 90%{opacity:1;} 100%{opacity:0; transform:translateY(-6px);} }
-        @keyframes pulse { 0%{transform:scale(1);opacity:1;}50%{transform:scale(1.06);opacity:0.85;}100%{transform:scale(1);opacity:1;} }
-        .promo-fade { animation: promoFade 4s ease-in-out infinite; }
-        .wa-pulse { animation: pulse 2.4s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) {
-          .promo-fade, .wa-pulse { animation: none !important; }
-        }
-      `}</style>
-
-      {/* Header */}
+      {/* === Header === */}
       <header className="flex flex-wrap justify-between items-center px-8 py-6 border-b border-[#d2b48c]/40 bg-white sticky top-0 z-50">
         <div className="flex items-center gap-4">
-        <img
-          src={logo}
-          alt="Everything SkinFood"
-          className="h-30 w-auto mx-auto transition-transform duration-500 hover:scale-105"
-/>
-
-          <div>
-            <h1 className="text-2xl font-bold tracking-small text-[#7a5c3d]">
-              Everythingskinfood
-            </h1>
-            <div className="text-xs text-[#5a4a42]"></div>
-          </div>
+          <img
+            src={logo}
+            alt="Everything SkinFood"
+            className="h-20 w-auto mx-auto transition-transform duration-500 hover:scale-105"
+          />
+          <h1 className="text-2xl font-bold text-[#7a5c3d]">Everythingskinfood</h1>
         </div>
 
         <nav className="hidden md:flex gap-8 text-sm uppercase tracking-wide relative">
@@ -300,29 +195,27 @@ export default function App() {
                   <ChevronDown className="w-4 h-4" />
                 )}
               </a>
-
-              {/* Dropdown (desktop hover) */}
-              {(cat === "Brands" || cat === "Viral Skincare") && dropdown === cat && (
-                <div className="absolute top-6 left-0 bg-white border border-[#d2b48c]/30 shadow-lg rounded-xl mt-2 py-2 w-52 z-50">
-                  {dropdownContent[cat].map((item, i) => (
-                    <a
-                      key={i}
-                      href="#"
-                      className="block px-4 py-2 text-[#3b2f2f] hover:bg-[#fff8f0] hover:text-[#a67b5b] transition"
-                    >
-                      {item}
-                    </a>
-                  ))}
-                </div>
-              )}
+              {(cat === "Brands" || cat === "Viral Skincare") &&
+                dropdown === cat && (
+                  <div className="absolute top-6 left-0 bg-white border border-[#d2b48c]/30 shadow-lg rounded-xl mt-2 py-2 w-52 z-50">
+                    {dropdownContent[cat].map((item, i) => (
+                      <a
+                        key={i}
+                        href="#"
+                        className="block px-4 py-2 text-[#3b2f2f] hover:bg-[#fff8f0] hover:text-[#a67b5b]"
+                      >
+                        {item}
+                      </a>
+                    ))}
+                  </div>
+                )}
             </div>
           ))}
         </nav>
 
         <button
           onClick={() => setCartOpen(!cartOpen)}
-          className="relative hover:text-[#a67b5b] transition"
-          aria-label="Open cart"
+          className="relative hover:text-[#a67b5b]"
         >
           <ShoppingBag className="w-6 h-6" />
           {cartItems.length > 0 && (
@@ -333,7 +226,7 @@ export default function App() {
         </button>
       </header>
 
-      {/* Hero */}
+      {/* === Hero Section === */}
       <section className="text-center py-16 px-6 bg-gradient-to-b from-[#fff8f0] to-white">
         <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-[#3b2f2f]">
           Nourish Your Skin Like Royalty
@@ -346,191 +239,191 @@ export default function App() {
         </button>
       </section>
 
-      {/* New In (horizontal) */}
-      <section id="newin" className="px-6 py-12">
-        <h3 className="text-2xl font-semibold mb-6 text-[#3b2f2f]">New In</h3>
-        <div className="flex gap-6 overflow-x-auto pb-4 no-scrollbar">
-          {products.filter(p => p.category === "New In").map((product) => (
-            <div key={product.id} className="min-w-[250px] bg-white p-4 rounded-2xl transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:shadow-lg will-change-transform" style={animationStyles.fadeUp}>
-              <div className="relative">
-                <img src={product.image} alt={product.name} className="w-full h-56 object-cover rounded-xl mb-3" loading="lazy" />
-                {/* example promo badge on new items */}
-                <div className="absolute top-3 left-3 bg-[#a67b5b] text-white text-xs px-2 py-1 rounded">{product.salePercent ? `${product.salePercent}% OFF` : ""}</div>
-              </div>
-              <h4 className="font-medium text-[#3b2f2f]">{product.name}</h4>
-              <p className="text-[#5a4a42] text-sm">{product.brand}</p>
-              <p className="font-semibold mt-2 text-[#3b2f2f]">₦{product.price.toLocaleString()}</p>
-              <button onClick={() => addToCart(product)} className="bg-[#a67b5b] w-full mt-3 py-2 rounded-full text-sm font-medium text-white hover:bg-[#8b5e3c] transition">Add to Cart</button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Skincare grid */}
-      <section id="skincare" className="px-8 py-16 bg-white">
-        <h3 className="text-2xl font-semibold mb-6 text-[#3b2f2f]">Skincare</h3>
-        <div className="grid md:grid-cols-3 gap-8">
-          {products.filter(p => p.category === "Skincare").map(p => (
-            <div key={p.id} className="bg-white p-4 rounded-3xl transition-transform duration-200 ease-out hover:-translate-y-1 hover:shadow-lg will-change-transform">
-              <img src={p.image} alt={p.name} className="w-full h-64 object-cover rounded-2xl mb-4" loading="lazy" />
-              <h3 className="text-xl font-semibold text-[#3b2f2f]">{p.name}</h3>
-              <p className="text-[#5a4a42] text-sm mb-2">{p.brand}</p>
-              <p className="text-lg font-bold mb-4 text-[#3b2f2f]">₦{p.price.toLocaleString()}</p>
-              <button onClick={() => addToCart(p)} className="bg-[#a67b5b] px-4 py-2 rounded-full text-sm font-medium text-white hover:bg-[#8b5e3c]">Add to Cart</button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Buy African Skincare */}
-      <section id="buyafricanskincare" className="px-8 py-16 bg-white">
-        <h3 className="text-2xl font-semibold mb-6 text-[#3b2f2f]">Buy African Skincare</h3>
-        <div className="grid md:grid-cols-3 gap-8">
-          {products.filter(p => p.category === "Buy African Skincare").map(p => (
-            <div key={p.id} className="bg-white p-4 rounded-3xl transition-transform duration-200 ease-out hover:-translate-y-1 hover:shadow-lg will-change-transform">
-              <img src={p.image} alt={p.name} className="w-full h-64 object-cover rounded-2xl mb-4" loading="lazy" />
-              <h3 className="text-xl font-semibold text-[#3b2f2f]">{p.name}</h3>
-              <p className="text-[#5a4a42] text-sm mb-2">{p.brand}</p>
-              <p className="text-lg font-bold mb-4 text-[#3b2f2f]">₦{p.price.toLocaleString()}</p>
-              <button onClick={() => addToCart(p)} className="bg-[#a67b5b] px-4 py-2 rounded-full text-sm font-medium text-white hover:bg-[#8b5e3c]">Add to Cart</button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Viral Skincare */}
-      <section id="viralskincare" className="px-8 py-16 bg-white">
-        <h3 className="text-2xl font-semibold mb-6 text-[#3b2f2f]">Viral Skincare</h3>
-        <div className="grid md:grid-cols-3 gap-8">
-          {products.filter(p => p.category === "Viral Skincare").map(p => (
-            <div key={p.id} className="bg-white p-4 rounded-3xl relative transition-transform duration-200 ease-out hover:-translate-y-1 hover:shadow-lg will-change-transform">
-              {p.badge && <div className="absolute top-3 right-3 bg-[#a67b5b] text-white text-xs px-2 py-1 rounded">{p.badge}</div>}
-              <img src={p.image} alt={p.name} className="w-full h-64 object-cover rounded-2xl mb-4" loading="lazy" />
-              <h3 className="text-xl font-semibold text-[#3b2f2f]">{p.name}</h3>
-              <p className="text-[#5a4a42] text-sm mb-2">{p.brand}</p>
-              <p className="text-lg font-bold mb-4 text-[#3b2f2f]">
-                {p.salePercent ? `₦${Math.round(p.price * (1 - p.salePercent / 100)).toLocaleString()} ` : `₦${p.price.toLocaleString()}`}
-                {p.salePercent && <span className="text-sm line-through text-[#5a4a42] ml-2">₦{p.price.toLocaleString()}</span>}
-              </p>
-              <button onClick={() => addToCart(p)} className="bg-[#a67b5b] px-4 py-2 rounded-full text-sm font-medium text-white hover:bg-[#8b5e3c]">Add to Cart</button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Sale */}
-      <section id="sale" className="px-8 py-16 bg-white">
-        <h3 className="text-2xl font-semibold mb-6 text-[#3b2f2f]">Sale</h3>
-        <div className="grid md:grid-cols-3 gap-8">
-          {products.filter(p => p.category === "Sale" || p.badge === "30% OFF").map((p, idx) => (
-            <div key={p.id} className="bg-white p-4 rounded-3xl relative transition-transform duration-200 ease-out hover:-translate-y-1 hover:shadow-lg will-change-transform" style={idx < 6 ? animationStyles.fadeUp : undefined}>
-              {p.badge && <div className="absolute top-3 left-3 bg-[#a67b5b] text-white text-xs px-2 py-1 rounded">{p.badge}</div>}
-              <img src={p.image} alt={p.name} className="w-full h-64 object-cover rounded-2xl mb-4" loading="lazy" />
-              <h3 className="text-xl font-semibold text-[#3b2f2f]">{p.name}</h3>
-              <p className="text-[#5a4a42] text-sm mb-2">{p.brand}</p>
-              <p className="text-lg font-bold mb-4 text-[#3b2f2f]">
-                {p.salePercent ? `₦${Math.round(p.price * (1 - p.salePercent / 100)).toLocaleString()} ` : `₦${p.price.toLocaleString()}`}
-                {p.salePercent && <span className="text-sm line-through text-[#5a4a42] ml-2">₦{p.price.toLocaleString()}</span>}
-              </p>
-              <button onClick={() => addToCart(p)} className="bg-[#a67b5b] px-4 py-2 rounded-full text-sm font-medium text-white hover:bg-[#8b5e3c]">Add to Cart</button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FAQs */}
-      <section id="faqs" className="px-8 py-16">
-        <h3 className="text-2xl font-semibold mb-6 text-[#3b2f2f]">FAQs</h3>
-        <div className="space-y-4">
-          <details className="bg-white p-4 rounded-xl">
-            <summary className="cursor-pointer font-medium text-[#3b2f2f]">How long before I see skincare results?</summary>
-            <p className="mt-2 text-[#5a4a42]">Typically 2–4 weeks of consistent use. Each product is formulated to target different skin concerns with visible results.</p>
-          </details>
-          <details className="bg-white p-4 rounded-xl">
-            <summary className="cursor-pointer font-medium text-[#3b2f2f]">Do you offer nationwide delivery?</summary>
-            <p className="mt-2 text-[#5a4a42]">Yes, we deliver across Nigeria and to select African countries via our logistics partners.</p>
-          </details>
-        </div>
-      </section>
-
-      {/* Cart Drawer with qty controls */}
-      {cartOpen && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex justify-end z-50">
-          <div className="bg-[#f9f5f2] w-80 h-full p-6 relative overflow-y-auto">
-            <button onClick={() => setCartOpen(false)} className="absolute top-4 right-4 text-[#3b2f2f] hover:text-[#a67b5b]"><X /></button>
-            <h3 className="text-lg font-semibold mb-6 text-[#3b2f2f]">Your Cart</h3>
-
-            {cartItems.length === 0 ? (
-              <p className="text-[#5a4a42]">Your cart is empty.</p>
+      {/* === Product Display === */}
+      {["New In", "Skincare", "Buy African Skincare", "Viral Skincare", "Sale"].map(
+        (section) => (
+          <section key={section} id={section.replace(/\s+/g, "").toLowerCase()} className="px-8 py-16 bg-white">
+            <h3 className="text-2xl font-semibold mb-6 text-[#3b2f2f]">{section}</h3>
+            {safeProducts.filter((p) => p.category === section).length === 0 ? (
+              <p>No products available in this category yet.</p>
             ) : (
-              <>
-                <ul className="space-y-4">
-                  {cartItems.map(item => (
-                    <li key={item.id} className="flex items-center justify-between text-[#3b2f2f]">
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm">₦{item.price.toLocaleString()}</p>
-
-                        <div className="flex items-center gap-2 mt-2">
-                          <button onClick={() => updateQty(item.id, -1)} className="border border-[#a67b5b] rounded-full px-2 text-sm">
-                            <Minus size={12} />
-                          </button>
-                          <span className="min-w-[24px] text-center">{item.qty}</span>
-                          <button onClick={() => updateQty(item.id, 1)} className="border border-[#a67b5b] rounded-full px-2 text-sm">
-                            <Plus size={12} />
-                          </button>
+              <div className="grid md:grid-cols-3 gap-8">
+                {safeProducts
+                  .filter((p) => p.category === section)
+                  .map((p) => (
+                    <div key={p.id} className="bg-white p-4 rounded-3xl relative hover:-translate-y-1 hover:shadow-lg transition">
+                      {p.badge && (
+                        <div className="absolute top-3 right-3 bg-[#a67b5b] text-white text-xs px-2 py-1 rounded">
+                          {p.badge}
                         </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-2">
-                        <p className="text-sm font-semibold">₦{(item.price * item.qty).toLocaleString()}</p>
-                        <button onClick={() => removeFromCart(item.id)} className="text-[#a67b5b] text-sm hover:underline">Remove</button>
-                      </div>
-                    </li>
+                      )}
+                      <img src={p.image} alt={p.name} className="w-full h-64 object-cover rounded-2xl mb-4" loading="lazy" />
+                      <h3 className="text-xl font-semibold">{p.name}</h3>
+                      <p className="text-[#5a4a42] text-sm mb-2">{p.brand}</p>
+                      <p className="text-lg font-bold mb-4">₦{p.price?.toLocaleString?.() ?? "—"}</p>
+                      <button onClick={() => addToCart(p)} className="bg-[#a67b5b] px-4 py-2 rounded-full text-sm text-white hover:bg-[#8b5e3c]">
+                        Add to Cart
+                      </button>
+                    </div>
                   ))}
-                </ul>
-
-                <div className="mt-6 border-t border-[#e7dfd3] pt-4">
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm text-[#5a4a42]">Subtotal</span>
-                    <span className="font-semibold">₦{cartSubtotal.toLocaleString()}</span>
-                  </div>
-                  <button className="w-full bg-[#7a5c3d] text-white py-3 rounded-full font-medium">Checkout</button>
-                </div>
-              </>
+              </div>
             )}
+          </section>
+        )
+      )}
+
+      {/* === Cart Drawer === */}
+      {cartOpen && (
+        <div className="fixed top-0 right-0 w-80 h-full bg-white shadow-2xl z-50 flex flex-col">
+          <div className="flex justify-between items-center p-4 border-b border-[#d2b48c]/40">
+            <h3 className="font-semibold text-lg">Your Cart</h3>
+            <X className="cursor-pointer" onClick={() => setCartOpen(false)} />
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {cartItems.length === 0 ? (
+              <p className="text-sm text-gray-500">Your cart is empty.</p>
+            ) : (
+              cartItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 border-b pb-2">
+                  <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-sm">{item.name}</h4>
+                    <p className="text-xs text-gray-500">₦{item.price}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <button onClick={() => updateQty(item.id, -1)}>
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span>{item.qty}</span>
+                      <button onClick={() => updateQty(item.id, 1)}>
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <X onClick={() => removeFromCart(item.id)} className="cursor-pointer w-4 h-4" />
+                </div>
+              ))
+            )}
+          </div>
+          <div className="p-4 border-t border-[#d2b48c]/40">
+            <p className="font-semibold mb-2">Subtotal: ₦{cartSubtotal.toLocaleString()}</p>
+            <button className="w-full bg-[#a67b5b] text-white py-2 rounded-full hover:bg-[#8b5e3c]">
+              Checkout
+            </button>
           </div>
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="border-t border-[#d2b48c]/40 bg-[#f3f3f3] py-8 text-center text-[#5a4a42] text-sm">
-        <div className="flex justify-center gap-6 mb-4">
-          <a href="https://www.instagram.com/everythingskinfood" target="_blank" rel="noreferrer" className="hover:text-[#a67b5b] transition">Instagram</a>
-          <a href="https://www.tiktok.com/@everythingskinfood" target="_blank" rel="noreferrer" className="hover:text-[#a67b5b] transition">TikTok</a>
-          <a href="mailto:vilawrence540@gmail.com" className="hover:text-[#a67b5b] transition">Email</a>
-          <a href="https://wa.me/2348108405552" target="_blank" rel="noreferrer" className="hover:text-[#a67b5b] transition">WhatsApp</a>
-        </div>
-        © {new Date().getFullYear()} Everythingskinfood. All rights reserved.
+      {/* === Footer === */}
+      <footer className="bg-[#fff8f0] text-[#3b2f2f] py-10 text-center border-t border-[#d2b48c]/30">
+        <p className="text-sm mb-2">© {new Date().getFullYear()} Everythingskinfood</p>
+        <p className="text-xs">Skincare inspired by nature. Powered by science. Designed for melanin.</p>
       </footer>
 
-      {/* Floating WhatsApp Button (fixed) */}
+      {/* WhatsApp Button */}
       <a
-        href="https://wa.me/2348108405552"
+        href="https://wa.me/2348012345678"
+        className="fixed bottom-24 right-4 bg-[#25D366] text-white p-3 rounded-full shadow-lg wa-pulse"
         target="_blank"
-        rel="noreferrer"
-        className="fixed right-6 bottom-16 z-50 bg-[#a67b5b] text-white p-4 rounded-full shadow-lg hover:bg-[#8b5e3c] transition wa-pulse"
-        aria-label="Chat on WhatsApp"
+        rel="noopener noreferrer"
       >
-        <MessageCircle className="w-5 h-5" />
+        <MessageCircle className="w-6 h-6" />
       </a>
 
-      {/* Bottom Promo Strip (cycles every 4s) */}
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t border-[#d2b48c]/30 py-2 text-center z-50">
-        <div key={promoIndex} className="promo-fade text-[#7a5c3d] text-sm font-medium">
-          {promos[promoIndex]}
-        </div>
+      {/* Promo Strip */}
+      <div className="fixed bottom-0 w-full bg-white text-[#7a5c3d] border-t border-[#d2b48c]/40 py-2 text-center text-sm font-medium animate-fade">
+        {promos[promoIndex]}
       </div>
+
+      <TestFirestore />
     </div>
   );
 }
+
+/* ========== ADMIN PANEL ========== */
+function AdminPanel() {
+  const [products, setProducts] = useState([]);
+  const [form, setForm] = useState({
+    name: "",
+    brand: "",
+    price: "",
+    category: "Skincare",
+    image: "",
+  });
+
+  const loadProducts = async () => {
+    const snapshot = await getDocs(collection(db, "products"));
+    setProducts(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+  };
+
+  const addProduct = async () => {
+    await addDoc(collection(db, "products"), {
+      ...form,
+      price: Number(form.price),
+    });
+    setForm({ name: "", brand: "", price: "", category: "Skincare", image: "" });
+    loadProducts();
+  };
+
+  const removeProduct = async (id) => {
+    await deleteDoc(doc(db, "products", id));
+    loadProducts();
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  return (
+    <div className="p-8 bg-white min-h-screen text-[#3b2f2f]">
+      <h2 className="text-3xl font-bold mb-6">🛠 Admin Dashboard</h2>
+
+      <div className="grid gap-4 mb-8 md:grid-cols-2">
+        {["name", "brand", "price", "image"].map((key) => (
+          <input
+            key={key}
+            type="text"
+            value={form[key]}
+            onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+            placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
+            className="border p-2 rounded w-full"
+          />
+        ))}
+        <select
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          className="border p-2 rounded w-full"
+        >
+          <option>Skincare</option>
+          <option>Buy African Skincare</option>
+          <option>Viral Skincare</option>
+          <option>Sale</option>
+          <option>New In</option>
+        </select>
+        <button
+          onClick={addProduct}
+          className="bg-[#a67b5b] text-white px-6 py-2 rounded hover:bg-[#8b5e3c]"
+        >
+          Add Product
+        </button>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-4">
+        {products.map((p) => (
+          <div key={p.id} className="border rounded-xl p-4 shadow">
+            <img src={p.image} alt={p.name} className="h-40 w-full object-cover rounded mb-2" />
+            <h4 className="font-semibold">{p.name}</h4>
+            <p className="text-sm">{p.brand}</p>
+            <p className="font-bold">₦{p.price}</p>
+            <button
+              onClick={() => removeProduct(p.id)}
+              className="mt-2 flex items-center gap-1 text-red-500"
+            >
+              <Trash className="w-4 h-4" /> Delete
+            </button>
+            </div>
+           ))} 
+           </div>
+         </div>
+       );
+     }
+     
